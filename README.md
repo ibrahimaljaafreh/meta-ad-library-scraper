@@ -71,7 +71,7 @@ python meta_ad_library_scraper.py
 **Custom keyword:**
 
 ```bash
-python meta_ad_library_scraper.py --keyword "bank of palestine"
+python meta_ad_library_scraper.py --keyword "bank of "
 ```
 
 **Last 10 or 20 ads only:**
