@@ -1,6 +1,3 @@
-# meta-ad-library-scraper
-A Python scraper for Meta Ad Library that retrieves ads using configurable keywords, sorted by most recent. Automatically scrolls results, removes duplicates, and exports structured data (library_id, ad_url, started_running, sponsor, ad_body, media_url) to JSON and CSV.
-
 # Meta Ad Library Scraper
 
 Scrapes results from **Meta Ad Library** with filters: **Country: All**, **Ads: All**, and a configurable search keyword. Results are sorted by **Most recent**. Outputs JSON and CSV with `library_id`, `ad_url`, `started_running`, `sponsor`, `ad_body`, and `media_url`.
