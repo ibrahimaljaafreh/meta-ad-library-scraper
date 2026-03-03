@@ -15,12 +15,12 @@ from urllib.parse import quote_plus
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
 
-# Base URL: country=ALL, ad_type=all, active ads, keyword in q=, sort by Most recent (newest first)
+# Base URL: country={country}, ad_type=all, keyword in q=, sort by Most recent. Default country=ALL.
 BASE_URL = (
     "https://www.facebook.com/ads/library/"
     "?active_status=active"
     "&ad_type=all"
-    "&country=ALL"
+    "&country={country}"
     "&is_targeted_country=false"
     "&media_type=all"
     "&q={keyword}"
@@ -28,6 +28,67 @@ BASE_URL = (
     "&sort_data[direction]=desc"
     "&sort_data[mode]=recent"
 )
+
+# Meta Ad Library country codes (code -> name). Examples: PS=Palestine, US=United States, GB=United Kingdom.
+COUNTRY_CODE_TO_NAME = {
+    "AC": "Ascension Island", "AD": "Andorra", "AE": "United Arab Emirates", "AF": "Afghanistan",
+    "AG": "Antigua and Barbuda", "AI": "Anguilla", "AL": "Albania", "AM": "Armenia",
+    "AN": "Netherlands Antilles", "AO": "Angola", "AQ": "Antarctica", "AR": "Argentina",
+    "AS": "American Samoa", "AT": "Austria", "AU": "Australia", "AW": "Aruba",
+    "AX": "Aland Islands (Finland)", "AZ": "Azerbaijan", "BA": "Bosnia & Herzegovina",
+    "BB": "Barbados", "BD": "Bangladesh", "BE": "Belgium", "BF": "Burkina Faso",
+    "BG": "Bulgaria", "BH": "Bahrain", "BI": "Burundi", "BJ": "Benin", "BL": "Saint Barthelemy",
+    "BM": "Bermuda", "BN": "Brunei", "BO": "Bolivia", "BQ": "Bonaire, Sint Eustatius and Saba",
+    "BR": "Brazil", "BS": "The Bahamas", "BT": "Bhutan", "BV": "Bouvet Island", "BW": "Botswana",
+    "BY": "Belarus", "BZ": "Belize", "CA": "Canada", "CC": "Cocos (Keeling) Islands",
+    "CD": "Democratic Republic of the Congo", "CF": "Central African Republic",
+    "CG": "Republic of the Congo", "CH": "Switzerland", "CI": "Ivory Coast", "CK": "Cook Islands",
+    "CL": "Chile", "CM": "Cameroon", "CN": "China", "CO": "Colombia", "CR": "Costa Rica",
+    "CU": "Cuba", "CV": "Cape Verde", "CW": "Curacao", "CX": "Christmas Island", "CY": "Cyprus",
+    "CZ": "Czech Republic", "DE": "Germany", "DJ": "Djibouti", "DK": "Denmark", "DM": "Dominica",
+    "DO": "Dominican Republic", "DZ": "Algeria", "EC": "Ecuador", "EE": "Estonia", "EG": "Egypt",
+    "EH": "Western Sahara", "ER": "Eritrea", "ES": "Spain", "ET": "Ethiopia", "FI": "Finland",
+    "FJ": "Fiji", "FK": "Falkland Islands", "FM": "Federated States of Micronesia", "FO": "Faroe Islands",
+    "FR": "France", "GA": "Gabon", "GB": "United Kingdom", "GD": "Grenada", "GE": "Georgia",
+    "GF": "French Guiana", "GG": "Guernsey", "GH": "Ghana", "GI": "Gibraltar", "GL": "Greenland",
+    "GM": "Gambia", "GN": "Guinea", "GP": "Guadeloupe", "GQ": "Equatorial Guinea", "GR": "Greece",
+    "GS": "South Georgia and the South Sandwich Islands", "GT": "Guatemala", "GU": "Guam",
+    "GW": "Guinea-Bissau", "GY": "Guyana", "HK": "Hong Kong", "HM": "Heard Island and McDonald Islands",
+    "HN": "Honduras", "HR": "Croatia", "HT": "Haiti", "HU": "Hungary", "ID": "Indonesia", "IE": "Ireland",
+    "IL": "Israel", "IM": "Isle of Man", "IN": "India", "IO": "British Indian Ocean Territory",
+    "IQ": "Iraq", "IR": "Iran", "IS": "Iceland", "IT": "Italy", "JE": "Jersey", "JM": "Jamaica",
+    "JO": "Jordan", "JP": "Japan", "KE": "Kenya", "KG": "Kyrgyzstan", "KH": "Cambodia", "KI": "Kiribati",
+    "KM": "Comoros", "KN": "Saint Kitts and Nevis", "KP": "North Korea (DPRK)", "KR": "South Korea",
+    "KW": "Kuwait", "KY": "Cayman Islands", "KZ": "Kazakhstan", "LA": "Laos", "LB": "Lebanon",
+    "LC": "Saint Lucia", "LI": "Liechtenstein", "LK": "Sri Lanka", "LR": "Liberia", "LS": "Lesotho",
+    "LT": "Lithuania", "LU": "Luxembourg", "LV": "Latvia", "LY": "Libya", "MA": "Morocco", "MC": "Monaco",
+    "MD": "Moldova", "ME": "Montenegro", "MF": "Saint Martin", "MG": "Madagascar", "MH": "Marshall Islands",
+    "MK": "North Macedonia", "ML": "Mali", "MM": "Myanmar", "MN": "Mongolia", "MO": "Macau",
+    "MP": "Northern Mariana Islands", "MQ": "Martinique", "MR": "Mauritania", "MS": "Montserrat",
+    "MT": "Malta", "MU": "Mauritius", "MV": "Maldives", "MW": "Malawi", "MX": "Mexico", "MY": "Malaysia",
+    "MZ": "Mozambique", "NA": "Namibia", "NC": "New Caledonia", "NE": "Niger", "NF": "Norfolk Island",
+    "NG": "Nigeria", "NI": "Nicaragua", "NL": "Netherlands", "NO": "Norway", "NP": "Nepal", "NR": "Nauru",
+    "NU": "Niue", "NZ": "New Zealand", "OM": "Oman", "PA": "Panama", "PE": "Peru", "PF": "French Polynesia",
+    "PG": "Papua New Guinea", "PH": "Philippines", "PK": "Pakistan", "PL": "Poland",
+    "PM": "Saint Pierre and Miquelon", "PN": "Pitcairn Islands", "PR": "Puerto Rico", "PS": "Palestine",
+    "PT": "Portugal", "PW": "Palau", "PY": "Paraguay", "QA": "Qatar", "RE": "Reunion", "RO": "Romania",
+    "RS": "Serbia", "RU": "Russia", "RW": "Rwanda", "SA": "Saudi Arabia", "SB": "Solomon Islands",
+    "SC": "Seychelles", "SD": "Sudan", "SE": "Sweden", "SG": "Singapore", "SH": "St. Helena",
+    "SI": "Slovenia", "SJ": "Svalbard and Jan Mayen", "SK": "Slovakia", "SL": "Sierra Leone",
+    "SM": "San Marino", "SN": "Senegal", "SO": "Somalia", "SR": "Suriname", "SS": "South Sudan",
+    "ST": "Sao Tome and Principe", "SV": "El Salvador", "SX": "Sint Maarten", "SY": "Syria",
+    "SZ": "Swaziland", "TC": "Turks and Caicos Islands", "TD": "Chad",
+    "TF": "French Southern and Antarctic Lands", "TG": "Togo", "TH": "Thailand", "TJ": "Tajikistan",
+    "TK": "Tokelau", "TL": "Timor-Leste", "TM": "Turkmenistan", "TN": "Tunisia", "TO": "Tonga",
+    "TR": "Turkey", "TT": "Trinidad and Tobago", "TV": "Tuvalu", "TW": "Taiwan", "TZ": "Tanzania",
+    "UA": "Ukraine", "UG": "Uganda", "UM": "United States Minor Outlying Islands",
+    "US": "United States of America", "UY": "Uruguay", "UZ": "Uzbekistan", "VA": "Vatican City",
+    "VC": "Saint Vincent and the Grenadines", "VE": "Venezuela", "VG": "British Virgin Islands",
+    "VI": "United States Virgin Islands", "VN": "Vietnam", "VU": "Vanuatu", "WF": "Wallis and Futuna",
+    "WS": "Samoa", "XK": "Kosovo", "YE": "Yemen", "YT": "Mayotte", "ZA": "South Africa",
+    "ZM": "Zambia", "ZW": "Zimbabwe",
+}
+VALID_COUNTRY_CODES = frozenset(COUNTRY_CODE_TO_NAME.keys())
 
 
 def get_current_id_count(page):
@@ -76,28 +137,45 @@ def scroll_to_load_all(page, target_count=None, max_scrolls=600, scroll_pause=2.
             if last_id_count > 0:
                 no_new_count += 1
                 if no_new_count >= no_new_ids_stop:
+                    if target_count is not None and last_id_count < target_count:
+                        extra = 15
+                        print(f"  Fewer than target ({last_id_count} < {target_count}). Doing {extra} more scrolls...")
+                        for _ in range(extra):
+                            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                            time.sleep(scroll_pause)
+                            current_count = get_current_id_count(page)
+                            if current_count > last_id_count:
+                                last_id_count = current_count
+                                no_new_count = 0
+                                if target_count is not None:
+                                    print(f"  Loaded {current_count} / {target_count} IDs...")
+                        if last_id_count >= target_count:
+                            print(f"  Reached target: {last_id_count} IDs (Meta estimate was ~{target_count}).")
+                            return last_id_count
                     print(f"  No new IDs for {no_new_ids_stop} checks. Total in DOM: {last_id_count}")
                     break
             elif i >= 20:
                 print("  No ad cards loaded yet. Try --no-headless to check for login or slow network.")
                 break
 
-        # Reached or passed target from "~X results" on page
+        # Reached or passed target (Meta's ~X is approximate)
         if target_count is not None and last_id_count >= target_count:
-            print(f"  Reached target: {last_id_count} IDs (page reported ~{target_count} results).")
+            print(f"  Reached target: {last_id_count} IDs (Meta estimate was ~{target_count}).")
             break
 
     return last_id_count
 
 
 def parse_results_count(page):
-    """Extract approximate results count from page text (e.g. '~1,200 results'). Returns int or None."""
+    """Extract the main results count. Prefer Meta's official '~1,200 results' so we don't pick a wrong number (e.g. 2,000 from elsewhere)."""
     try:
         text = page.content()
-        match = re.search(r"~?([\d,]+)\s*results?", text, re.IGNORECASE)
+        # Meta shows total as "~1,100 results" or "~1,200 results" – require tilde so we don't match "2,000" from impressions etc.
+        match = re.search(r"~\s*([\d,]+)\s*results?", text, re.IGNORECASE)
         if match:
             return int(match.group(1).replace(",", ""))
-        match = re.search(r"([\d,]+)\s*results?", text, re.IGNORECASE)
+        # Fallback: any number immediately followed by " results" (space before "results" to avoid "2000results" from other widgets)
+        match = re.search(r"([\d,]+)\s+results?\b", text, re.IGNORECASE)
         if match:
             return int(match.group(1).replace(",", ""))
     except Exception:
@@ -283,6 +361,7 @@ def scrape(
     no_new_ids_stop=8,
     limit=None,
     month=None,
+    country="ALL",
 ):
     """
     Open Meta Ad Library with given keyword (country=All, Ads=All), scroll to load
@@ -292,33 +371,54 @@ def scrape(
     output_path.mkdir(parents=True, exist_ok=True)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=headless)
+        launch_args = [
+            "--disable-blink-features=AutomationControlled",
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-infobars",
+            "--window-size=1920,1080",
+        ]
+        browser = p.chromium.launch(
+            headless=headless,
+            args=launch_args,
+        )
         context = browser.new_context(
-            viewport={"width": 1280, "height": 900},
+            viewport={"width": 1920, "height": 1080},
             user_agent=(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
             ),
+            locale="en-US",
+            java_script_enabled=True,
         )
+        context.add_init_script("Object.defineProperty(navigator, 'webdriver', { get: () => undefined });")
         page = context.new_page()
         page.set_default_timeout(timeout_sec)
 
-        # Encode keyword for URL (e.g. "bank of palestine" -> "bank+of+palestine")
-        url = BASE_URL.format(keyword=quote_plus(keyword))
+        country_param = country.strip().upper() if country else "ALL"
+        if country_param != "ALL" and country_param not in VALID_COUNTRY_CODES:
+            print(f"Note: '{country_param}' is not in the known country list; URL will use it anyway.")
+        url = BASE_URL.format(keyword=quote_plus(keyword), country=country_param)
+        if country_param != "ALL":
+            name = COUNTRY_CODE_TO_NAME.get(country_param, country_param)
+            print(f"Country: {name} ({country_param})")
         print(f"Opening: {url}")
-        print("Do not close the browser window until the script finishes.")
-        # Use "load" not "networkidle" - Facebook never goes idle, so networkidle can hang/close
+        if headless:
+            print("Headless mode: if you get 0 results, run with --no-headless (Meta often blocks headless).")
+        else:
+            print("Do not close the browser window until the script finishes.")
         page.goto(url, wait_until="load", timeout=60000)
-        time.sleep(6)
+        time.sleep(10 if headless else 6)
 
         try:
             page.wait_for_selector('div[role="main"]', timeout=20000)
         except PlaywrightTimeout:
             pass
 
-        page_total = wait_for_results_ready(page, timeout_sec=45)
+        page_total = wait_for_results_ready(page, timeout_sec=60 if headless else 45)
         if page_total is not None and page_total > 0:
-            print(f"Total ads for keyword '{keyword}': ~{page_total} results.")
+            print(f"Total ads for keyword '{keyword}': ~{page_total} results (Meta's estimate, not always exact).")
         else:
             print(f"Could not read total count for '{keyword}'. Will scroll until no new ads load.")
 
@@ -348,14 +448,27 @@ def scrape(
         print("Scroll done. Extracting ad cards...")
 
         ads = extract_ads_from_page(page)
-        # Deduplicate only by exact library_id (same id = duplicate)
+        # Deduplicate only by exact library_id (same id = duplicate); record duplicates for report
         by_id = {}
+        duplicates = []
         for i, ad in enumerate(ads):
             lid = (ad.get("library_id") or "").strip()
             key = lid if lid else f"__no_id_{i}"
             if key not in by_id:
                 by_id[key] = ad
+            else:
+                dup_info = {
+                    "library_id": lid or "(no id)",
+                    "ad_url": (ad.get("ad_url") or "").strip(),
+                    "started_running": (ad.get("started_running") or "").strip(),
+                }
+                duplicates.append(dup_info)
         ads = list(by_id.values())
+        if duplicates:
+            print(f"\n--- Duplicates removed (same library_id, kept first occurrence) — {len(duplicates)} ---")
+            for j, d in enumerate(duplicates, 1):
+                print(f"  {j}. library_id: {d['library_id']}  |  {d['ad_url']}  |  {d['started_running']}")
+            print()
         # Keep only first N (newest) when limit is set and month is not
         if month is None and limit is not None and len(ads) > limit:
             ads = ads[:limit]
@@ -370,7 +483,9 @@ def scrape(
         unique_count = len(ads)
         if month_norm is None:
             if target_count is not None:
-                print(f"Extracted {unique_count} unique ads (page reported ~{target_count} results).")
+                print(f"Extracted {unique_count} unique ads (Meta showed ~{target_count}; that number is approximate).")
+                if unique_count < target_count:
+                    print(f"  (Difference: Meta's count is not exact, and/or some ads did not load, and/or duplicates were removed by library_id.)")
             else:
                 print(f"Extracted {unique_count} unique ads.")
 
@@ -383,12 +498,16 @@ def scrape(
                 print(f"  {i}. {url}  |  {date}")
             print()
 
-        # Safe filename: keyword + timestamp (and month if filtered)
+        # Safe filename: keyword + optional country + optional month + timestamp
         safe_keyword = re.sub(r"[^\w\-]+", "_", keyword).strip("_") or "search"
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        file_stem = f"meta_ads_{safe_keyword}_{timestamp}"
+        parts = [safe_keyword]
+        if country_param != "ALL":
+            parts.append(country_param)
         if month_norm:
-            file_stem = f"meta_ads_{safe_keyword}_{month_norm}_{timestamp}"
+            parts.append(month_norm)
+        parts.append(timestamp)
+        file_stem = "meta_ads_" + "_".join(parts)
         # JSON
         json_file = output_path / f"{file_stem}.json"
         with open(json_file, "w", encoding="utf-8") as f:
@@ -427,6 +546,7 @@ def main():
     parser.add_argument("--no-new-stop", type=int, default=8, help="Stop after this many scrolls with no new IDs (default: 8)")
     parser.add_argument("--limit", "-n", type=int, default=None, metavar="N", help="Fetch only the last N ads (e.g. 10 or 20); default = all")
     parser.add_argument("--month", "-m", type=str, default=None, metavar="MONTH", help="Fetch all ads then keep only started_running in this month (e.g. jan, feb, oct)")
+    parser.add_argument("--country", "-c", type=str, default="ALL", metavar="CODE", help="Country code (e.g. PS, US, GB). Default ALL.")
     args = parser.parse_args()
 
     try:
@@ -439,6 +559,7 @@ def main():
             no_new_ids_stop=args.no_new_stop,
             limit=args.limit,
             month=args.month,
+            country=args.country,
         )
     except Exception as e:
         if _is_target_closed_error(e):

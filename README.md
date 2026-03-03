@@ -59,6 +59,7 @@ cd /path/to/Scraper && pip install -r requirements.txt && python3 -m playwright 
 | `--max-scrolls` | Max scroll steps (default: 600) |
 | `--no-new-stop` | Stop after this many scrolls with no new IDs (default: 8) |
 | `--month`, `-m` | Fetch all ads, then keep only ads whose `started_running` is in this month (e.g. `jan`, `feb`, `oct`) |
+| `--country`, `-c` | Country code (e.g. `PS`, `US`, `GB`). Default `ALL`. |
 
 ### Examples
 
@@ -101,6 +102,15 @@ python meta_ad_library_scraper.py -q "bank of palestine" -m jan
 ```
 
 Use 3-letter month or full name: `jan`, `feb`, `mar`, `apr`, `may`, `jun`, `jul`, `aug`, `sep`, `oct`, `nov`, `dec` (or e.g. `january`, `february`). Output and files contain only ads whose `started_running` matches that month.
+
+**By country (default is ALL):**
+
+```bash
+python meta_ad_library_scraper.py --keyword palpay --country PS
+python meta_ad_library_scraper.py -q palpay -c US
+```
+
+Use 2-letter ISO code: `PS` (Palestine), `US`, `GB`, `JO`, `EG`, etc. Default is `ALL` (all countries).
 
 On Linux/macOS use `python3` if `python` points to Python 2:
 
